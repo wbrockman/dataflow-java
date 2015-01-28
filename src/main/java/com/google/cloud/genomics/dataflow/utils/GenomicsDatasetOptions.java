@@ -14,17 +14,23 @@
 package com.google.cloud.genomics.dataflow.utils;
 
 import com.google.api.services.genomics.Genomics;
+import com.google.api.services.genomics.model.ReadGroupSet;
+import com.google.api.services.genomics.model.SearchReadGroupSetsRequest;
+import com.google.api.services.genomics.model.SearchReadsRequest;
 import com.google.api.services.genomics.model.SearchVariantsRequest;
 import com.google.cloud.dataflow.sdk.options.Default;
 import com.google.cloud.dataflow.sdk.options.Description;
 import com.google.cloud.genomics.utils.Contig;
 import com.google.cloud.genomics.utils.GenomicsFactory;
+import com.google.cloud.genomics.utils.Paginator;
 import com.google.common.collect.Lists;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.List;
 import java.util.logging.Logger;
+
+import static com.google.cloud.genomics.utils.Paginator.*;
 
 /**
  * A common options class for all pipelines that operate over a single dataset and write their
@@ -35,9 +41,41 @@ public interface GenomicsDatasetOptions extends GenomicsOptions {
 
     private static final Logger LOG = Logger.getLogger(GenomicsDatasetOptions.class.getName());
 
-    // TODO: If needed, add getReadRequests method
+    public static List<SearchReadsRequest> getReadRequests(GenomicsDatasetOptions options,
+                                                           GenomicsFactory.OfflineAuth auth,
+                                                           boolean excludeXY)
+        throws IOException, GeneralSecurityException {
+      String datasetId = options.getDatasetId();
+      String readGroupSetId = options.getReadGroupSetId();
+      Genomics genomics = auth.getGenomics(auth.getDefaultFactory());
+      List<String> readGroupSets = Lists.newArrayList();
+      if (readGroupSetId.isEmpty()) {
+        Paginator.ReadGroupSets searchReadGroupSets = Paginator.ReadGroupSets.create(genomics);
+        for (ReadGroupSet readGroupSet = searchReadGroupSets.search(
+            new SearchReadGroupSetsRequest().setDatasetIds(Lists.newArrayList(datasetId)))) {
+          readGroupSets.add(readGroupSet.getId());
+        }
+      } else {
+        readGroupSets.add(readGroupSetId);
+      }
+
+      Iterable<Contig> contigs = options.isAllContigs()
+          ? Contig.lookupContigs(genomics, readGroupSetId, excludeXY)
+          : Contig.parseContigsFromCommandLine(options.getReferences());
+
+      List<SearchVariantsRequest> requests = Lists.newArrayList();
+      for (Contig contig : contigs) {
+        for (Contig shard : contig.getShards()) {
+          LOG.info("Adding request with " + shard.referenceName + " " + shard.start + " to "
+              + shard.end);
+          requests.add(shard.getVariantsRequest(datasetId));
+        }
+      }
+      return requests;
+    }
+
     public static List<SearchVariantsRequest> getVariantRequests(GenomicsDatasetOptions options,
-        GenomicsFactory.OfflineAuth auth, boolean excludeXY)
+                                                                 GenomicsFactory.OfflineAuth auth, boolean excludeXY)
         throws IOException, GeneralSecurityException {
       String datasetId = options.getDatasetId();
       Genomics genomics = auth.getGenomics(auth.getDefaultFactory());
@@ -62,6 +100,11 @@ public interface GenomicsDatasetOptions extends GenomicsOptions {
       + "Defaults to 1000 Genomes.")
   @Default.String("10473108253681171589")
   String getDatasetId();
+
+  @Description("The ID of the Google Genomics ReadGroupSet this pipeline is working with. "
+      + "Default (empty) indicates all ReadGroupSets.")
+  @Default.String("")
+  String getReadGroupSetId();
 
   @Description("Path of the file to write to")
   String getOutput();
