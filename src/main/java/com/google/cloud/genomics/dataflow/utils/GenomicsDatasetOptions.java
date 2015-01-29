@@ -123,6 +123,8 @@ public interface GenomicsDatasetOptions extends GenomicsOptions {
 
   void setDatasetId(String datasetId);
 
+  void setReadGroupSetId(String readGroupSetId);
+
   void setOutput(String output);
 
   @Description("Comma separated tuples of reference:start:end,... Defaults to " + Contig.BRCA1)
