@@ -1,5 +1,6 @@
 package com.google.cloud.genomics.dataflow.pipelines;
 
+import com.google.api.services.genomics.model.SearchReadsRequest;
 import com.google.api.services.genomics.model.SearchVariantsRequest;
 import com.google.cloud.dataflow.sdk.Pipeline;
 import com.google.cloud.dataflow.sdk.options.PipelineOptionsFactory;
@@ -35,7 +36,7 @@ public class LeftAlignIndelsPipeline {
       e.printStackTrace();
       return 1;
     }
-    List<SearchVariantsRequest> requests;
+    List<SearchReadsRequest> requests;
     try {
       requests = GenomicsDatasetOptions.Methods.getReadRequests(
           options, auth, true);
