@@ -1,9 +1,15 @@
 package com.google.cloud.genomics.dataflow.pipelines;
 
+import com.google.api.services.genomics.model.Read;
 import com.google.api.services.genomics.model.SearchReadsRequest;
 import com.google.api.services.genomics.model.SearchVariantsRequest;
 import com.google.cloud.dataflow.sdk.Pipeline;
+import com.google.cloud.dataflow.sdk.io.TextIO;
 import com.google.cloud.dataflow.sdk.options.PipelineOptionsFactory;
+import com.google.cloud.dataflow.sdk.transforms.ParDo;
+import com.google.cloud.dataflow.sdk.values.PCollection;
+import com.google.cloud.genomics.dataflow.functions.ReadPrinter;
+import com.google.cloud.genomics.dataflow.readers.ReadReader;
 import com.google.cloud.genomics.dataflow.utils.DataflowWorkarounds;
 import com.google.cloud.genomics.dataflow.utils.GenomicsDatasetOptions;
 import com.google.cloud.genomics.dataflow.utils.GenomicsOptions;
@@ -19,40 +25,25 @@ import static com.google.cloud.genomics.utils.GenomicsFactory.*;
  * Created by brockman on 1/28/15.
  */
 public class LeftAlignIndelsPipeline {
-  private static final String READ_FIELDS = "nextPageToken";
-
-  public static int main(String[] args) {
+  public static void main(String[] args) throws GeneralSecurityException, IOException {
     GenomicsDatasetOptions options = PipelineOptionsFactory.fromArgs(args)
         .withValidation().as(GenomicsDatasetOptions.class);
     GenomicsOptions.Methods.validateOptions(options);
 
-    OfflineAuth auth;
-    try {
-      auth = GenomicsOptions.Methods.getGenomicsAuth(options);
-    } catch (IOException e) {
-      e.printStackTrace();
-      return 1;
-    } catch (GeneralSecurityException e) {
-      e.printStackTrace();
-      return 1;
-    }
-    List<SearchReadsRequest> requests;
-    try {
-      requests = GenomicsDatasetOptions.Methods.getReadRequests(
-          options, auth, true);
-    } catch (IOException e) {
-      e.printStackTrace();
-      return 2;
-    } catch (GeneralSecurityException e) {
-      e.printStackTrace();
-      return 2;
-    }
+    OfflineAuth auth = GenomicsOptions.Methods.getGenomicsAuth(options);
+    List<SearchReadsRequest> requests = GenomicsDatasetOptions.Methods.getReadRequests(
+        options, auth, true);
 
     Pipeline p = Pipeline.create(options);
     DataflowWorkarounds.registerGenomicsCoders(p);
-    DataflowWorkarounds.getPCollection(requests, p, options.getNumWorkers());
+    PCollection<SearchReadsRequest> readRequests = DataflowWorkarounds.getPCollection(
+        requests, p, options.getNumWorkers());
+    PCollection<Read> reads = readRequests.apply(
+        ParDo.of(new ReadReader(auth)).named(ReadReader.class.getSimpleName()));
+    PCollection<String> printed = reads.apply(ParDo.of(new ReadPrinter()).named(ReadPrinter.class.getSimpleName()));
+    printed.apply(TextIO.Write.to(options.getOutput()).named("WriteReads"));
 
-    return 0;
+    p.run();
   }
 
 }
