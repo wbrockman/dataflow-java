@@ -14,29 +14,30 @@ public class ReadPrinter extends com.google.cloud.dataflow.sdk.transforms.DoFn<R
   @Override
   public void processElement(ProcessContext processContext) throws Exception {
     Read read = processContext.element();
-    StringBuilder out = new StringBuilder();
+    StringBuilder out = new StringBuilder(read.getAlignedSequence().length());
     Long offset = Long.valueOf(0);
-    for (CigarUnit c :read.getAlignment().getCigar()) {
+    for (CigarUnit c : read.getAlignment().getCigar()) {
+      Long opLength = c.getOperationLength();
       switch (c.getOperation()) {
         case "ALIGNMENT_MATCH":
         case "SEQUENCE_MATCH":
         case "SEQUENCE_MISMATCH":
-          int start = offset.intValue();
-          offset += c.getOperationLength();
+          final int start = offset.intValue();
+          offset += opLength;
           out.append(read.getAlignedSequence().substring(start, offset.intValue()));
           break;
         case "CLIP_SOFT":
         case "INSERT":
-          offset += c.getOperationLength();
+          offset += opLength;
           break;
         case "PAD":
-          repeat(out, '*', c.getOperationLength());
+          repeat(out, '*', opLength);
           break;
         case "DELETE":
-          repeat(out, '-', c.getOperationLength());
+          repeat(out, '-', opLength);
           break;
         case "SKIP":
-          repeat(out, ' ', c.getOperationLength());
+          repeat(out, ' ', opLength);
           break;
         case "CLIP_HARD":
           break;

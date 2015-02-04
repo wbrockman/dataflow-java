@@ -8,6 +8,7 @@ import com.google.cloud.dataflow.sdk.io.TextIO;
 import com.google.cloud.dataflow.sdk.options.PipelineOptionsFactory;
 import com.google.cloud.dataflow.sdk.transforms.ParDo;
 import com.google.cloud.dataflow.sdk.values.PCollection;
+import com.google.cloud.genomics.dataflow.functions.LeftAlignIndels;
 import com.google.cloud.genomics.dataflow.functions.ReadPrinter;
 import com.google.cloud.genomics.dataflow.readers.ReadReader;
 import com.google.cloud.genomics.dataflow.utils.DataflowWorkarounds;
@@ -40,6 +41,9 @@ public class LeftAlignIndelsPipeline {
         requests, p, options.getNumWorkers());
     PCollection<Read> reads = readRequests.apply(
         ParDo.of(new ReadReader(auth)).named(ReadReader.class.getSimpleName()));
+    //TODO: insert an actual LeftAlignIndels operation before ReadPrinter
+    PCollection<Read> leftAlignedReads = reads.apply(
+        ParDo.of(new LeftAlignIndels()).named(LeftAlignIndels.class.getSimpleName()));
     PCollection<String> printed = reads.apply(ParDo.of(new ReadPrinter()).named(ReadPrinter.class.getSimpleName()));
     printed.apply(TextIO.Write.to(options.getOutput()).named("WriteReads"));
 

@@ -151,6 +151,13 @@
         </exclusion>
       </exclusions>
     </dependency>
+      <dependency>
+         <groupId>gatk-tools-java</groupId>
+         <artifactId>gatk-tools-java</artifactId>
+         <scope>system</scope>
+         <version>1.0</version>
+         <systemPath>/usr/local/google/home/brockman/IdeaProjects/gatk-tools-java/out/artifacts/gatk_tools_java_jar/gatk-tools-java.jar</systemPath>
+      </dependency>
 
     <dependency>
       <groupId>com.google.guava</groupId>
