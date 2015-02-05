@@ -2,8 +2,9 @@ package com.google.cloud.genomics.dataflow.functions;
 
 import com.google.api.services.genomics.model.Read;
 import com.google.cloud.dataflow.sdk.transforms.DoFn;
-import htsjdk.samtools.Cigar;
+/*import htsjdk.samtools.Cigar;
 import htsjdk.samtools.SAMRecord;
+*/
 
 /**
  * Created by brockman on 1/30/15.
