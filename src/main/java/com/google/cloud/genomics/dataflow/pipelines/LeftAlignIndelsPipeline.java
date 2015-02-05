@@ -54,6 +54,7 @@ public class LeftAlignIndelsPipeline {
             KeyedPCollectionTuple.of(refTag, refs)
             .and(readTag, reads)
             .apply(CoGroupByKey.<ReferenceInterval>create());
+    //TODO: insert an actual LeftAlignIndels operation before ReadPrinter
     PCollection<String> printed = refAndReads.apply(
             ParDo.of(new ReadPrinter(refTag, readTag)).named(ReadPrinter.class.getSimpleName()));
     printed.apply(TextIO.Write.to(options.getOutput()).named("WriteReads"));
