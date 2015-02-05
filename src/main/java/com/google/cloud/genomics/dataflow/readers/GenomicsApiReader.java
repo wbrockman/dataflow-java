@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.logging.Logger;
 
-public abstract class GenomicsApiReader<I extends GenericJson, O extends GenericJson> 
+public abstract class GenomicsApiReader<I extends GenericJson, O>
     extends DoFn<I, O> {
   private static final Logger LOG = Logger.getLogger(GenomicsApiReader.class.getName());
 
