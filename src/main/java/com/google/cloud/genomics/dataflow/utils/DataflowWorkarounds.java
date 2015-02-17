@@ -24,6 +24,7 @@ import com.google.cloud.dataflow.sdk.transforms.Flatten;
 import com.google.cloud.dataflow.sdk.values.PCollection;
 import com.google.cloud.dataflow.sdk.values.PCollectionList;
 import com.google.cloud.genomics.dataflow.coders.GenericJsonCoder;
+import com.google.cloud.genomics.dataflow.model.ReferenceBases;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -100,6 +101,8 @@ public class DataflowWorkarounds {
       LOG.info("Registering coder for " + clazz.getSimpleName());
       DataflowWorkarounds.registerCoder(p, clazz, GenericJsonCoder.of(clazz));
     }
+
+    DataflowWorkarounds.registerCoder(p, ReferenceBases.class, ReferenceBases.Coder.of());
   }
   
   /**

@@ -7,6 +7,7 @@ import com.google.cloud.dataflow.sdk.coders.KvCoder;
 import com.google.cloud.dataflow.sdk.coders.StringUtf8Coder;
 import com.google.cloud.dataflow.sdk.values.KV;
 import com.google.cloud.genomics.dataflow.coders.DelegatingAtomicCoder;
+import com.google.common.primitives.Longs;
 
 /**
  * Created by brockman on 2/3/15.
@@ -57,7 +58,7 @@ public class ReferenceInterval {
     }
 
     public Long clip(Long position) {
-        return Long.min(Long.max(start, position), end);
+        return Longs.min(Longs.max(start, position), end);
     }
 
     public Long clippedRelativePosition(Long position) {
