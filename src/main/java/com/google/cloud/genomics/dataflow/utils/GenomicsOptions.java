@@ -14,6 +14,7 @@
 package com.google.cloud.genomics.dataflow.utils;
 
 import com.google.cloud.dataflow.sdk.options.DataflowPipelineOptions;
+import com.google.cloud.dataflow.sdk.options.Default;
 import com.google.cloud.dataflow.sdk.options.Description;
 import com.google.cloud.genomics.utils.GenomicsFactory;
 
@@ -56,4 +57,10 @@ public interface GenomicsOptions extends DataflowPipelineOptions {
   String getGenomicsSecretsFile();
 
   void setGenomicsSecretsFile(String genomicsSecretsFile);
+
+  @Description("Whether to exclude the X and Y chromosomes")
+  @Default.Boolean(true)
+  boolean getExcludeXY();
+
+  void setExcludeXY(boolean excludeXY);
 }

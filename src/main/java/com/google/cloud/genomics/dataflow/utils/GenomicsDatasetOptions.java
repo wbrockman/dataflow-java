@@ -41,11 +41,45 @@ public interface GenomicsDatasetOptions extends GenomicsOptions {
     private static final Logger LOG = Logger.getLogger(GenomicsDatasetOptions.class.getName());
 
     public static List<SearchReadsRequest> getReadRequests(GenomicsDatasetOptions options,
-                                                           GenomicsFactory.OfflineAuth auth,
-                                                           boolean excludeXY)
+                                                           GenomicsFactory.OfflineAuth auth)
         throws IOException, GeneralSecurityException {
       Genomics genomics = auth.getGenomics(auth.getDefaultFactory());
+      List<String> readGroupSetIds = getReadGroupSetIds(options, genomics);
 
+      Iterable<Contig> contigs = getShardedContigs(options, genomics, readGroupSetIds);
+
+      return getSearchReadsRequests(readGroupSetIds, contigs);
+    }
+
+    public static List<SearchReadsRequest> getSearchReadsRequests(List<String> readGroupSetIds, Iterable<Contig> contigs) {
+      List<SearchReadsRequest> requests = Lists.newArrayList();
+      for (String rgsId : readGroupSetIds) {
+        for (Contig shard : contigs) {
+            LOG.info("Adding request for " + rgsId
+                + " with " + shard.referenceName + " " + shard.start + " to " + shard.end);
+            requests.add(shard.getReadsRequest(rgsId));
+        }
+      }
+      return requests;
+    }
+
+    private static Iterable<Contig> getShardedContigs(GenomicsDatasetOptions options, Genomics genomics,
+                                                      List<String> readGroupSetIds) throws IOException {
+      //TODO: for now we assume there is only one reference for all the readgroupsets,
+      // without checking that they all have the same reference ID.
+      Iterable<Contig> contigs = options.isAllContigs()
+              ? Contig.lookupContigs(genomics, readGroupSetIds.get(0), options.getExcludeXY())
+              : Contig.parseContigsFromCommandLine(options.getReferences());
+      List<Contig> sharded = Lists.newArrayList();
+      for (Contig contig : contigs) {
+        for (Contig shard : contig.getShards()) {
+          sharded.add(shard);
+        }
+      }
+      return sharded;
+    }
+
+    private static List<String> getReadGroupSetIds(GenomicsDatasetOptions options, Genomics genomics) {
       // Figure out the datasetId and readGroupSetId(s) we are working with.
       String datasetId = options.getDatasetId();
       List<String> readGroupSetIds = Lists.newArrayList();
@@ -60,23 +94,7 @@ public interface GenomicsDatasetOptions extends GenomicsOptions {
       } else {
         readGroupSetIds.add(readGroupSetId);
       }
-      //TODO: for now we assume only one reference for all the readgroupsets, without checking.
-      readGroupSetId = readGroupSetIds.get(0);
-      Iterable<Contig> contigs = options.isAllContigs()
-          ? Contig.lookupContigs(genomics, readGroupSetId, excludeXY)
-          : Contig.parseContigsFromCommandLine(options.getReferences());
-
-      List<SearchReadsRequest> requests = Lists.newArrayList();
-      for (String rgsId : readGroupSetIds) {
-        for (Contig contig : contigs) {
-          for (Contig shard : contig.getShards()) {
-            LOG.info("Adding request for " + rgsId
-                + " with " + shard.referenceName + " " + shard.start + " to " + shard.end);
-            requests.add(shard.getReadsRequest(rgsId));
-          }
-        }
-      }
-      return requests;
+      return readGroupSetIds;
     }
 
     public static List<SearchVariantsRequest> getVariantRequests(GenomicsDatasetOptions options,

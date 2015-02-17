@@ -38,7 +38,7 @@ public class LeftAlignIndelsPipeline {
 
     OfflineAuth auth = GenomicsOptions.Methods.getGenomicsAuth(options);
     List<SearchReadsRequest> requests = GenomicsDatasetOptions.Methods.getReadRequests(
-        options, auth, true);
+        options, auth);
 
     Pipeline p = Pipeline.create(options);
     DataflowWorkarounds.registerGenomicsCoders(p);
