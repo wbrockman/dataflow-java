@@ -40,18 +40,8 @@ public interface GenomicsDatasetOptions extends GenomicsOptions {
 
     private static final Logger LOG = Logger.getLogger(GenomicsDatasetOptions.class.getName());
 
-    public static List<SearchReadsRequest> getReadRequests(GenomicsDatasetOptions options,
-                                                           GenomicsFactory.OfflineAuth auth)
-        throws IOException, GeneralSecurityException {
-      Genomics genomics = auth.getGenomics(auth.getDefaultFactory());
-      List<String> readGroupSetIds = getReadGroupSetIds(options, genomics);
-
-      Iterable<Contig> contigs = getShardedContigs(options, genomics, readGroupSetIds);
-
-      return getSearchReadsRequests(readGroupSetIds, contigs);
-    }
-
-    public static List<SearchReadsRequest> getSearchReadsRequests(List<String> readGroupSetIds, Iterable<Contig> contigs) {
+    public static List<SearchReadsRequest> getSearchReadsRequests(List<String> readGroupSetIds,
+                                                                  Iterable<Contig> contigs) {
       List<SearchReadsRequest> requests = Lists.newArrayList();
       for (String rgsId : readGroupSetIds) {
         for (Contig shard : contigs) {
@@ -63,7 +53,7 @@ public interface GenomicsDatasetOptions extends GenomicsOptions {
       return requests;
     }
 
-    private static Iterable<Contig> getShardedContigs(GenomicsDatasetOptions options, Genomics genomics,
+    public static Iterable<Contig> getShardedContigs(GenomicsDatasetOptions options, Genomics genomics,
                                                       List<String> readGroupSetIds) throws IOException {
       //TODO: for now we assume there is only one reference for all the readgroupsets,
       // without checking that they all have the same reference ID.
@@ -79,7 +69,7 @@ public interface GenomicsDatasetOptions extends GenomicsOptions {
       return sharded;
     }
 
-    private static List<String> getReadGroupSetIds(GenomicsDatasetOptions options, Genomics genomics) {
+    public static List<String> getReadGroupSetIds(GenomicsDatasetOptions options, Genomics genomics) {
       // Figure out the datasetId and readGroupSetId(s) we are working with.
       String datasetId = options.getDatasetId();
       List<String> readGroupSetIds = Lists.newArrayList();

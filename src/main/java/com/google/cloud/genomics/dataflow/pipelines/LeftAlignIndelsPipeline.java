@@ -1,5 +1,6 @@
 package com.google.cloud.genomics.dataflow.pipelines;
 
+import com.google.api.services.genomics.Genomics;
 import com.google.api.services.genomics.model.Read;
 import com.google.api.services.genomics.model.SearchReadsRequest;
 import com.google.cloud.dataflow.sdk.Pipeline;
@@ -20,6 +21,7 @@ import com.google.cloud.genomics.dataflow.readers.RefBasesReader;
 import com.google.cloud.genomics.dataflow.utils.DataflowWorkarounds;
 import com.google.cloud.genomics.dataflow.utils.GenomicsDatasetOptions;
 import com.google.cloud.genomics.dataflow.utils.GenomicsOptions;
+import com.google.cloud.genomics.utils.Contig;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -37,16 +39,21 @@ public class LeftAlignIndelsPipeline {
     GenomicsOptions.Methods.validateOptions(options);
 
     OfflineAuth auth = GenomicsOptions.Methods.getGenomicsAuth(options);
-    List<SearchReadsRequest> requests = GenomicsDatasetOptions.Methods.getReadRequests(
-        options, auth);
+    Genomics genomics = auth.getGenomics(auth.getDefaultFactory());
+    List<String> readGroupSetIds = GenomicsDatasetOptions.Methods.getReadGroupSetIds(options, genomics);
+
+    Iterable<Contig> contigs = GenomicsDatasetOptions.Methods.getShardedContigs(options, genomics, readGroupSetIds);
+
+    List<SearchReadsRequest> readRequests =
+        GenomicsDatasetOptions.Methods.getSearchReadsRequests(readGroupSetIds, contigs);
 
     Pipeline p = Pipeline.create(options);
     DataflowWorkarounds.registerGenomicsCoders(p);
-    PCollection<SearchReadsRequest> readRequests = DataflowWorkarounds.getPCollection(
-        requests, p, options.getNumWorkers());
-    PCollection<KV<ReferenceInterval, Read>> reads = readRequests.apply(
+    PCollection<SearchReadsRequest> readRequestCollection = DataflowWorkarounds.getPCollection(
+        readRequests, p, options.getNumWorkers());
+    PCollection<KV<ReferenceInterval, Read>> reads = readRequestCollection.apply(
             ParDo.of(new ReadReader(auth)).named(ReadReader.class.getSimpleName()));
-    PCollection<KV<ReferenceInterval, ReferenceBases>> refs = readRequests.apply(
+    PCollection<KV<ReferenceInterval, ReferenceBases>> refs = refRequests.apply(
             ParDo.of(new RefBasesReader(auth)).named(RefBasesReader.class.getSimpleName()));
     final TupleTag<ReferenceBases> refTag = new TupleTag<>("refTag");
     final TupleTag<Read> readTag = new TupleTag<>("readTag");
